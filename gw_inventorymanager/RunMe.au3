@@ -5,8 +5,7 @@
 #RequireAdmin
 #NoTrayIcon
 
-; #include "../3v_gwa2/GWA2.au3"
-#include "GWA2.au3" 								; GWA2.au3 required for InventoryManager to work. No need to include if your bot already has it.
+#include "gwa2/GWA2.au3" 								; GWA2.au3 required for InventoryManager to work. No need to include if your bot already has it.
 #include "InventoryManager/InventoryManager.au3"	; Include InventoryManager.
 
 ; Override default InventoryManager variables
