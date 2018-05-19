@@ -1,0 +1,6 @@
+[submodule "gwa2"]
+	path = gwa2
+	url = https://github.com/tjubutsi/gwa2.git
+[submodule "gw_inventorymanager"]
+	path = gw_inventorymanager
+	url = https://github.com/3vcloud/gw_inventorymanager.git

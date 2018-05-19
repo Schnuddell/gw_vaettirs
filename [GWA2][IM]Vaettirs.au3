@@ -6,14 +6,14 @@
 
 #RequireAdmin
 #NoTrayIcon
-#include "GWA2.au3"
-#Region InventoryManager Settings
-	#include "../gw_inventorymanager/InventoryManager/InventoryManager.au3"
-	$im_ShowGUI = 1 ; Show GUI
-	$im_Hotkey = '' ; Disable hotkey
-	$im_BotName = "InventoryManager for "&@ScriptName
-	IM_Init() 		; Initialize after vars have been set
-#EndRegion
+; #include "../gwa2/GWA2.au3" ; Development include
+; #include "../gw_inventorymanager/InventoryManager/InventoryManager.au3" ; Development include
+#include "gwa2/GWA2.au3"
+#include "gw_inventorymanager/InventoryManager/InventoryManager.au3"
+$im_ShowGUI = 1 ; InventoryManager: Show GUI
+$im_Hotkey = '' ; InventoryManager: Disable hotkey
+$im_BotName = "InventoryManager for "&@ScriptName
+IM_Init() 		; InventoryManager: Initialize after vars have been set
 
 ; #include "GWA2Gigi.au3"
 #include <ButtonConstants.au3>
