@@ -44,3 +44,6 @@ $im_ShowStartButton = 0 ; No point having a start/stop button - we can't interru
 ManageInventory() ; Call this function to manually start inventory manager (i.e. after a farming run etc)
 ; .... Do some more stuff....
 ```
+
+## Updating GWA2 from repo
+git subtree pull --prefix=gwa2 https://github.com/tjubutsi/gwa2 master --squash
