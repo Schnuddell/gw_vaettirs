@@ -8,3 +8,8 @@ Build code "OwVUI2h5lPP8Id2BkAiAvpLBTAA", use 20% Enchanting weapon, full Blesse
 Original Code "VaettirComboRunv3.0.au3" written by Gigi
 Uses [InventoryManager](https://github.com/3vcloud/gw_inventorymanager) in between runs
 Uses [GWA2](https://github.com/tjubutsi/gwa2) version 3.7.5 or above. 
+
+## Updating GWA2 and InventoryManager repos
+git subtree pull --prefix=gw_inventorymanager https://github.com/3vcloud/gw_inventorymanager master --squash
+git subtree pull --prefix=gwa2 https://github.com/tjubutsi/gwa2 master --squash
+git push
