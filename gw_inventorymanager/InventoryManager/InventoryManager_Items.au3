@@ -596,8 +596,11 @@ Func IM_MoveItem($aItem, $aBag, $aSlot, $aAmount=0) ; Pointer based GWA2 MoveIte
 		$aBag = MemoryRead(IM_GetBagPtr($aBag) + 8, 'long')
 	EndIf
 	Local $ping = GetPing()
-	IM_Log("Moving Item "&$HEADER_ITEM_MOVE_EX)
-	SendPacket(0x14, $HEADER_ITEM_MOVE_EX, $lItemID, $aAmount, $aBag, $aSlot - 1)
+	If $aAmount >= $lItemQuantity Then
+		SendPacket(0x10, $HEADER_ITEM_MOVE, $lItemID, $aBag, $aSlot - 1) ; Move Item i.e. User drags whole stack/item to other slot.
+	Else
+		SendPacket(0x14, $HEADER_ITEM_MOVE_EX, $lItemID, $aAmount, $aBag, $aSlot - 1) ; Split stack i.e. User does CTRL + drag.
+	EndIf
 	Local $lDeadlock = TimerInit()
 	Local $ok = 0
 	Do 

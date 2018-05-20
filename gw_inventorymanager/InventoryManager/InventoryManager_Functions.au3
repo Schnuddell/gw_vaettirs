@@ -467,8 +467,10 @@ Func IM_Sell()	; Main function call for selling everything.
 	For $i=0 to UBound($traderBitsToSell)-1
 		Local $itemsToSell = $traderBitsToSell[$i][0]
 		Local $minQty = $traderBitsToSell[$i][2]
-		If UBound($itemsToSell) < 1 Then ContinueLoop ; No items to sell
 		Local $trader = $traderBitsToSell[$i][1]
+		If $trader = $MerchantID Then $itemsToSell = IM_OtherBitsToSell() ; Recalculate bits to sell if we're merchant.
+		If UBound($itemsToSell) < 1 Then ContinueLoop ; No items to sell
+		
 		If $trader = 0 Then ContinueLoop ; This map has no relevent trader.
 		If Not IM_OK() Then Return 0
 		; IM_Log("Moving to "&GetAgentName($trader)&" @ "&DllStructGetData($trader, 'X')&", "&DllStructGetData($trader, 'Y'))
@@ -912,7 +914,7 @@ Func IM_BuyKits($aAmount=40,$kitType='All')
 	Next
 	Local $KitUses = IM_FindItemUses(1,4,$ModelIDs)
 	If $KitUses >= $aAmount Then Return 1 ; Already have enough
-	If Not GoToNPC(IM_GetAgentIDByName("Merchant",0xDB)) Then Return 0 ; No Merchant!
+	If Not IM_GoToMerchant(IM_GetMerchant()) Then Return 0 ; No Merchant!
 	Local $lGold = IM_MinMaxGold()
 	Local $lItemIDRow
 	Local $lBuyAmount
@@ -973,7 +975,7 @@ Func IM_HasItemsToBuy()
 	Return IM_NeedToBuyEctos()
 Endfunc
 Func IM_HasItemsToSell()
-	Return IM_OtherBitsToSell() Or IM_MaterialsToSell() Or IM_MaterialsToSell(True) Or IM_UpgradesToSell() Or IM_DyesToSell() Or IM_ScrollsToSell()
+	Return UBound(IM_OtherBitsToSell()) Or UBound(IM_MaterialsToSell()) Or UBound(IM_MaterialsToSell(True)) Or UBound(IM_UpgradesToSell()) Or UBound(IM_DyesToSell()) Or UBound(IM_ScrollsToSell())
 EndFunc
 Func IM_FindItemUses($aStart = 1, $aFinish = 4, $modelIDs=False)
 	Local $lCount=0
