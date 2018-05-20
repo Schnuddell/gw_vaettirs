@@ -37,11 +37,11 @@ Func IM_NeedToBuyEctos()
 EndFunc
 Func IM_GoToMerchant($aPlayernumber) ; Lifted from gwAPI
    ; first try
-   $lAgentArray = GetAgentArray()
+   Local $lAgentArray = GetAgentArray()
    For $i = 1 To $lAgentArray[0]
 	  If DllStructGetData($lAgentArray[$i],'PlayerNumber') = $aPlayernumber Then
 		 GoToNPC($lAgentArray[$i])
-		 Sleep(500)
+		 TolSleep(GetPing())
 		 Return Dialog(0x7F)
 	  EndIf
    Next
@@ -57,7 +57,7 @@ Func IM_GoToMerchant($aPlayernumber) ; Lifted from gwAPI
    For $i = 1 To $lAgentArray[0]
 	  If DllStructGetData($lAgentArray[$i],'PlayerNumber') = $aPlayernumber Then
 		 GoToNPC($lAgentArray[$i])
-		 Sleep(500)
+		 TolSleep(GetPing())
 		 Return Dialog(0x7F)
 	  EndIf
    Next
