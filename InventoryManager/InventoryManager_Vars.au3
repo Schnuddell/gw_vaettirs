@@ -36,16 +36,17 @@ Global $im_InitDone=0				; Has inventory manager been initialised?
 #Region GWA2 Integration
 	#Region Headers needed for InventoryManager to work.
 		; IM Uses the CAPS header variables. GWA2 uses CamelCase variables. Match them up.
-		Local $im_checkHeaders[5][3] = [ _ ;[<InventoryManager naming convention>,<GWA2 naming convention>,<Header value as of 30/04/2018>]
-			['HEADER_SALVAGE_MATS','SalvageMaterialsHeader',0x7D], _
-			['HEADER_SALVAGE_MODS','SalvageModHeader',0x7E], _
-			['HEADER_ITEM_ID','IdentifyItemHeader',0x6F], _
-			['HEADER_ITEM_MOVE_EX','MoveItemExHeader',0x78], _
-			['HEADER_ITEMS_ACCEPT_UNCLAIMED','AcceptAllItemsHeader',0x76] _
+		Local $im_checkHeaders[6][3] = [ _ ;[<InventoryManager naming convention>,<GWA2 naming convention>,<Header value as of 30/04/2018>]
+			['HEADER_SALVAGE_MATS','SalvageMaterialsHeader','0x7F'], _
+			['HEADER_SALVAGE_MODS','SalvageModHeader','0x80'], _
+			['HEADER_ITEM_ID','IdentifyItemHeader','0x71'], _
+			['HEADER_ITEM_MOVE','MoveItemHeader','0x77'], _
+			['HEADER_ITEM_MOVE_EX','MoveItemExHeader','$HEADER_ITEM_MOVE + 0x03'], _ ; MoveItemExHeader was removed from GWA2 code, but is 3 higher than MoveItemHeader.
+			['HEADER_ITEMS_ACCEPT_UNCLAIMED','AcceptAllItemsHeader','$HEADER_ITEM_MOVE + 0x01'] _
 		]
 		For $i=0 To UBound($im_checkHeaders)-1
 			If IsDeclared($im_checkHeaders[$i][0]) Then ContinueLoop ; Header declared already :)
-			Assign($im_checkHeaders[$i][0],$im_checkHeaders[$i][2],2) ; Assign our header value
+			Assign($im_checkHeaders[$i][0],Execute($im_checkHeaders[$i][2]),2) ; Assign our header value
 			If IsDeclared($im_checkHeaders[$i][1]) Then Assign($im_checkHeaders[$i][0],Eval($im_checkHeaders[$i][1]),2) ; Copy variable across.
 		Next
 	#EndRegion
