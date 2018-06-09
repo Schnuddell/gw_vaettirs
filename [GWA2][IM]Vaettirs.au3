@@ -7,12 +7,13 @@
 #RequireAdmin
 #NoTrayIcon
 ; #include "../gwa2/GWA2.au3" ; Development include
-; #include "../gw_inventorymanager/InventoryManager/InventoryManager.au3" ; Development include
-#include "gwa2/GWA2.au3"
-#include "gw_inventorymanager/InventoryManager/InventoryManager.au3"
+#include "../gw_inventorymanager/InventoryManager/InventoryManager.au3" ; Development include
+#include "../skyweb_gwa2/GWA2.au3"
+; #include "gw_inventorymanager/InventoryManager/InventoryManager.au3"
 $im_ShowGUI = 1 ; InventoryManager: Show GUI
 $im_Hotkey = '' ; InventoryManager: Disable hotkey
 $im_BotName = "InventoryManager for "&@ScriptName
+IM_AssignLogFunction('Out',True) ; InventoryManager: Route logging functions to Out() function, pass True to explicitly route here.
 IM_Init() 		; InventoryManager: Initialize after vars have been set
 
 ; #include "GWA2Gigi.au3"
@@ -105,45 +106,6 @@ Global $Array_pscon[39]=[910, 5585, 6366, 6375, 22190, 24593, 28435, 30855, 3114
 
 #EndRegion Global Items
 
-#Region Guild Hall Globals
-;~ Prophecies
-Global $GH_ID_Warriors_Isle = 4
-Global $GH_ID_Hunters_Isle = 5
-Global $GH_ID_Wizards_Isle = 6
-Global $GH_ID_Burning_Isle = 52
-Global $GH_ID_Frozen_Isle = 176
-Global $GH_ID_Nomads_Isle = 177
-Global $GH_ID_Druids_Isle = 178
-Global $GH_ID_Isle_Of_The_Dead = 179
-;~ Factions
-Global $GH_ID_Isle_Of_Weeping_Stone = 275
-Global $GH_ID_Isle_Of_Jade = 276
-Global $GH_ID_Imperial_Isle = 359
-Global $GH_ID_Isle_Of_Meditation = 360
-;~ Nightfall
-Global $GH_ID_Uncharted_Isle = 529
-Global $GH_ID_Isle_Of_Wurms = 530
-Global $GH_ID_Corrupted_Isle = 537
-Global $GH_ID_Isle_Of_Solitude = 538
-
-Global $WarriorsIsle = False
-Global $HuntersIsle = False
-Global $WizardsIsle = False
-Global $BurningIsle = False
-Global $FrozenIsle = False
-Global $NomadsIsle = False
-Global $DruidsIsle = False
-Global $IsleOfTheDead = False
-Global $IsleOfWeepingStone = False
-Global $IsleOfJade = False
-Global $ImperialIsle = False
-Global $IsleOfMeditation = False
-Global $UnchartedIsle = False
-Global $IsleOfWurms = False
-Global $CorruptedIsle = False
-Global $IsleOfSolitude = False
-#EndRegion Guild Hall Globals
-
 ; ================== CONFIGURATION ==================
 ; True or false to load the list of logged in characters or not
 Global Const $doLoadLoggedChars = True
@@ -164,14 +126,14 @@ Global $ChatStuckTimer = TimerInit()
 ;~ Any pcons you want to use during a run
 Global $pconsCupcake_slot[2]
 Global $useCupcake = True ; set it on true and he use it
-
+Global $GLOGBOX
 ; ==== Build ====
-Global Const $SkillBarTemplate = "OwVUI2h5lPP8Id2BkAiAvpLBTAA"
+Global Const $SkillBarTemplate = "OwVUI2h5lPT8I6MHQ0kIQ3ULBmAA"
 ; declare skill numbers to make the code WAY more readable (UseSkill($sf) is better than UseSkill(2))
 Global Const $paradox = 1
 Global Const $sf = 2
 Global Const $shroud = 3
-Global Const $wayofperf = 4
+Global Const $iau = 4
 Global Const $hos = 5
 Global Const $wastrel = 6
 Global Const $echo = 7
@@ -181,7 +143,7 @@ Global $skillCost[9]
 $skillCost[$paradox] = 15
 $skillCost[$sf] = 5
 $skillCost[$shroud] = 10
-$skillCost[$wayofperf] = 5
+$skillCost[$iau] = 5
 $skillCost[$hos] = 5
 $skillCost[$wastrel] = 5
 $skillCost[$echo] = 15
@@ -194,7 +156,7 @@ Global Const $SKILL_ID_WASTREL_DEMISE = 1335
 
 #Region GUI
 
-Global Const $mainGui = GUICreate("Vaettir Bot", 375, 275)
+Global Const $mainGui = GUICreate("Vaettir Bot", 500, 275)
 	GUISetOnEvent($GUI_EVENT_CLOSE, "_exit")
 Global $Input
 If $doLoadLoggedChars Then
@@ -208,16 +170,16 @@ GUICtrlCreateLabel("Runs:", 8, 65, 70, 17)
 Global Const $RunsLabel = GUICtrlCreateLabel($RunCount, 80, 65, 50, 17)
 GUICtrlCreateLabel("Fails:", 8, 80, 70, 17)
 Global Const $FailsLabel = GUICtrlCreateLabel($FailCount, 80, 80, 50, 17)
-Global Const $Checkbox = GUICtrlCreateCheckbox("Disable Rendering", 8, 98, 129, 17)
-	GUICtrlSetState(-1, $GUI_DISABLE)
-	GUICtrlSetOnEvent(-1, "ToggleRendering")
+Global Const $mDisableRenderingCheckbox = GUICtrlCreateCheckbox("Disable Rendering", 8, 98, 129, 17)
+	; GUICtrlSetState(-1, $GUI_DISABLE)
+	GUICtrlSetOnEvent(-1, "CheckRenderingBox")
 Global Const $Button = GUICtrlCreateButton("Start", 8, 120, 131, 25)
 	GUICtrlSetOnEvent(-1, "GuiButtonHandler")
 Global Const $StatusLabel = GUICtrlCreateLabel("", 8, 148, 125, 17)
 GUICtrlCreateLabel("Select Rare Mats", 8, 155, 100, 17)
 Global $SELECTMAT = GUICtrlCreateCombo("Rare Mats", 8, 175, 125,  25, BitOR($CBS_DROPDOWN, $CBS_AUTOHSCROLL))
 
-Global $GLOGBOX = GUICtrlCreateEdit("", 140, 8, 225, 240, BitOR($ES_AUTOVSCROLL, $ES_AUTOHSCROLL, $ES_WANTRETURN, $WS_VSCROLL))
+Global $GLOGBOX = GUICtrlCreateEdit("", 140, 8, 350, 240, BitOR($ES_AUTOVSCROLL, $ES_AUTOHSCROLL, $ES_WANTRETURN, $WS_VSCROLL))
 GUICtrlSetColor($GLOGBOX, 65280)
 GUICtrlSetBkColor($GLOGBOX, 0)
 GUISetState(@SW_SHOW)
@@ -253,7 +215,6 @@ Func GuiButtonHandler()
 			EndIf
 		EndIf
 		EnsureEnglish(True)
-		GUICtrlSetState($Checkbox, $GUI_ENABLE)
 		GUICtrlSetState($Leeching, $GUI_ENABLE)
 		GUICtrlSetState($MapPieces, $GUI_ENABLE)
 		GUICtrlSetState($Tomes, $GUI_ENABLE)
@@ -270,208 +231,173 @@ EndFunc
 Out("Waiting for input")
 
 Func WaitUntilBotRunning()
-	If $BotRunning Then Return
-	Out("Bot Paused")
-	; IM_Stop() ; Stop InventoryManager
+	Do 
+		Sleep(1000)
+	Until $BotRunning
+EndFunc
+Func PauseBot($aMessage='')
+	Out("Bot Paused"&($aMessage ? " ("&$aMessage&")" : ''))
+	$BotRunning = False
 	GUICtrlSetState($Button, $GUI_ENABLE)
 	GUICtrlSetData($Button, "Start")
-	While Not $BotRunning
-		Sleep(100)
-	WEnd
 EndFunc
 While 1
 	WaitUntilBotRunning()
-	Local $MapToFunction = 'MapL', $RunThereFunction = 'RunThereLongeyes'
-	If StringInStr(GUICtrlRead($LOCATION, ""),'Sifhalla') Then
-		$MapToFunction = 'MapS'
-		$RunThereFunction = 'RunThereSifhalla'
+	If CheckForErrors('PauseBot') Then ContinueLoop ; Error in GW.
+	; If GetMapLoading() Then WaitMapLoading()
+	If Not GetIsHardMode() Then MapToOutpost()
+	If GetMorale() <= -45 Then MapToOutpost() ; Morale too low to do much.
+	If GetIsDead(-2) Then 
+		Sleep(1000)
+		ContinueLoop ; Wait for res
 	EndIf
-	Call($MapToFunction)
-	WaitUntilBotRunning()
-	Call($RunThereFunction)
-	WaitUntilBotRunning()
-	If GetIsDead(-2) Then ContinueLoop
-
-	$PickUpAll = (GUICtrlRead($Leeching) <> 1)
-	$PickUpMapPieces = (GUICtrlRead($MapPieces) = 1)
-	$PickUpTomes = (GUICtrlRead($Tomes) = 1)
-	; $StoreUNIDGolds = (GUICtrlRead($StoreGolds) = 1)
-
-	While (CountSlots() > 4)
-		WaitUntilBotRunning()
-		CombatLoop()
-		ManageInventory() ; Post farm inventory manage.
-	WEnd
-	If CountSlots() < 4 Then RndTravel(StringInStr(GUICtrlRead($LOCATION, ""),'Longeye') ? $Town_ID_Sifhalla : $Town_ID_Longeye)
+	If CountSlots() < 4 Then
+		ManageInventory()
+		If CountSlots() > 3 Then ContinueLoop ; Successfully managed inventory.
+		MapToOutpost()
+		ManageInventory()
+		If CountSlots() > 3 Then ContinueLoop ; Successfully managed inventory.
+		Out("Inventory still full after managing inventory")
+		PauseBot()
+		ContinueLoop
+	EndIf
+	;PauseBot("Map ID = "&GetMapID())
+	;continueloop
+	Switch GetMapID()
+		Case $MAP_ID_JAGA
+			If GetFoesKilled() > 20 Or GetDistanceTo(13318, -20826) > 5000 Then 
+				RunToFarm() ; Just farmed, or Blessing NPC is too far away.
+			Else
+				CombatLoop()
+			EndIf
+		Case $MAP_ID_Bjora
+			RunToFarm()
+		Case $Town_ID_Longeye
+			LeaveOutpost()
+		Case Else
+			MapToOutpost()
+	EndSwitch
 WEnd
-Func MapL()
-	Local $lCurrentMap = GetMapID()
-	If $lCurrentMap = $MAP_ID_Bjora Then
-		ManageInventory()
-		SetDisplayedTitle(0x29)
-		;~ Scans your bags for Cupcakes and uses one to make the run faster.
-		pconsScanInventory()
-		Sleep(GetPing()+500)
-		UseCupcake()
-		Return
-	EndIf
-	If $lCurrentMap <> $Town_ID_Longeye Then
-		Out("Travelling to longeye")
-		RndTravel($Town_ID_Longeye)
-	EndIf
+Func MapToOutpost()
+	Out("Travelling to longeye")
+	If Not GetIsExplorableArea() Then LeaveGroup(1)
+	RndTravel($Town_ID_Longeye)
+	Sleep(500 + GetPing())
+EndFunc
+Func LeaveOutpost()
+	If GetMapID() <> $Town_ID_Longeye Then Return PauseBot("Tried to leave outpost, but not in Longeyes")
+	LeaveGroup(1)
+	IM_BuyKits(150,'Expert')
+	IM_BuyKits(150,'ID')
 	ManageInventory()
 	SwitchMode(1)
+	LoadSkillTemplate($SkillBarTemplate)
 	Out("Exiting Outpost")
-	Move(-26472, 16217)
-	WaitMapLoading($MAP_ID_Bjora)
+	MoveTo(-26472, 16217)
+	Sleep(500 + GetPing())
 EndFunc
-Func MapS()
-	Local $lCurrentMap = GetMapID()
-	If $lCurrentMap = $MAP_ID_Jaga Then
-		ManageInventory()
-		SetDisplayedTitle(0x29)
-		;~ Scans your bags for Cupcakes and uses one to make the run faster.
-		pconsScanInventory()
-		Sleep(GetPing()+500)
-		UseCupcake()
-		Return
-	EndIf
-	If $lCurrentMap <> $Town_ID_Sifhalla Then
-		Out("Travelling to Sifhalla")
-		RndTravel($Town_ID_Sifhalla)
-	EndIf
-	ManageInventory()
-	SwitchMode(1)
-	Out("Exiting Outpost")
-	MoveTo(16197, 22825)
-	Move(16800, 22867)
-	WaitMapLoading($MAP_ID_Jaga)
-EndFunc
-
-;~ Description: zones to longeye if we're not there, and travel to Jaga Moraine
-Func RunThereLongeyes()
+Func RunToFarm()
 	Out("Running to farm spot")
-	DIM $array_Longeyes[31][3] = [ _
-										[1, 15003.8, -16598.1], _
-										[1, 15003.8, -16598.1], _
-										[1, 12699.5, -14589.8], _
-										[1, 11628,   -13867.9], _
-										[1, 10891.5, -12989.5], _
-										[1, 10517.5, -11229.5], _
-										[1, 10209.1, -9973.1], _
-										[1, 9296.5,  -8811.5], _
-										[1, 7815.6,  -7967.1], _
-										[1, 6266.7,  -6328.5], _
-										[1, 4940,    -4655.4], _
-										[1, 3867.8,  -2397.6], _
-										[1, 2279.6,  -1331.9], _
-										[1, 7.2,     -1072.6], _
-										[1, 7.2,     -1072.6], _
-										[1, -1752.7, -1209], _
-										[1, -3596.9, -1671.8], _
-										[1, -5386.6, -1526.4], _
-										[1, -6904.2, -283.2], _
-										[1, -7711.6, 364.9], _
-										[1, -9537.8, 1265.4], _
-										[1, -11141.2,857.4], _
-										[1, -12730.7,371.5], _
-										[1, -13379,  40.5], _
-										[1, -14925.7,1099.6], _
-										[1, -16183.3,2753], _
-										[1, -17803.8,4439.4], _
-										[1, -18852.2,5290.9], _
-										[1, -19250,  5431], _
-										[1, -19968, 5564], _
-										[2, -20076,  5580]]
-	Out("Running to Jaga")
-	For $i = 0 To (UBound($array_Longeyes) -1)
-		If ($array_Longeyes[$i][0]==1)Then
-			If Not MoveRunning($array_Longeyes[$i][1], $array_Longeyes[$i][2]) Then ExitLoop
-		EndIf
-		If ($array_Longeyes[$i][0]==2) Then
-			Move($array_Longeyes[$i][1], $array_Longeyes[$i][2], 30)
-			WaitMapLoading($MAP_ID_JAGA)
-		EndIf
+	SetDisplayedTitle(0x29)
+	Local $lRunCoords[0], $lWaitMapLoad=0
+	Switch GetMapID()
+		Case $MAP_ID_BJORA
+			Local $lRunCoords[30][2] = [[15003.8, -16598.1], _
+				[15003.8, -16598.1], _
+				[12699.5, -14589.8], _
+				[11628,   -13867.9], _
+				[10891.5, -12989.5], _
+				[10517.5, -11229.5], _
+				[10209.1, -9973.1], _
+				[9296.5,  -8811.5], _
+				[7815.6,  -7967.1], _
+				[6266.7,  -6328.5], _
+				[4940,    -4655.4], _
+				[3867.8,  -2397.6], _
+				[2279.6,  -1331.9], _
+				[7.2,     -1072.6], _
+				[-1752.7, -1209], _
+				[-3596.9, -1671.8], _
+				[-5386.6, -1526.4], _
+				[-6904.2, -283.2], _
+				[-7711.6, 364.9], _
+				[-9537.8, 1265.4], _
+				[-11141.2,857.4], _
+				[-12730.7,371.5], _
+				[-13379,  40.5], _
+				[-14925.7,1099.6], _
+				[-16183.3,2753], _
+				[-17803.8,4439.4], _
+				[-18852.2,5290.9], _
+				[-19250,  5431], _
+				[-19968, 5564], _
+				[-20500,  5580]]
+			$lWaitMapLoad = $MAP_ID_JAGA
+		Case $MAP_ID_JAGA
+			Local $lRunCoords = [[-11059,	-23401], _
+				[-8524,	-21590], _
+				[-8870,	-21818], _
+				[-6979,	-21705], _
+				[-4144,	-25480], _
+				[-456,	-25575], _
+				[2362,	-23315], _
+				[1877,	-21862], _
+				[914,	-21159], _
+				[1303,	-18593], _
+				[2092,	-16943], _
+				[2909,	-15487], _
+				[2757,	-13745], _
+				[1280,	-11243], _
+				[-217,	-10112], _
+				[-1201,	-8855], _
+				[-2022,	-8535], _
+				[-2383,	-7170], _
+				[-332,	-5391], _
+				[1726,	-5463], _
+				[3465,	-5999], _
+				[4130,	-8139], _
+				[5170,	-9609], _
+				[7922,	-11222], _
+				[9600,	-11614], _
+				[11818,	-13547], _
+				[12911,	-15538], _
+				[14199,	-18786], _
+				[15201,	-20293], _
+				[15865, -20531]]
+			$lWaitMapLoad = $MAP_ID_BJORA
+	EndSwitch
+	For $i = ClosestCoord($lRunCoords) To UBound($lRunCoords)-1
+		If Not MoveRunning($lRunCoords[$i][0], $lRunCoords[$i][1]) Then ExitLoop
+		If $i = UBound($lRunCoords)-1 Then WaitMapLoading($lWaitMapLoad)
 	Next
+	Sleep(500 + GetPing())
 EndFunc
 Func ClosestCoord(ByRef $CoordsArray)
-	Local $closestIdx=-1
-	Local $closestDiff=999999
-	Local $lMe = GetAgentByID(-2)
-	Local $MeCoords[2] = [DllStructGetData($lMe, 'X'), DllStructGetData($lMe, 'Y')]
+	Local $lClosestIdx=-1, $lClosestDistance=999999, $lMeXY = GetAgentXY(-2), $lDistance
 	For $i=0 To UBound($CoordsArray)-1
-		Local $xDiff = $MeCoords[0] - $CoordsArray[$i][1]
-		Local $yDiff = $MeCoords[1] - $CoordsArray[$i][2]
-		If $xDiff < 0 Then $xDiff*=-1
-		If $yDiff < 0 Then $yDiff*=-1
-		If $xDiff + $yDiff > $closestDiff Then ContinueLoop
-		$closestIdx=$i
-		$closestDiff = $xDiff + $yDiff
+		$lDistance = ComputePseudoDistance($lMeXY[0],$lMeXY[1], $CoordsArray[$i][0],$CoordsArray[$i][1])
+		If $lClosestDistance < $lDistance And $i > 0 Then ContinueLoop
+		$lClosestDistance = $lDistance
+		$lClosestIdx = $i
 	Next
-	Return $closestIdx;
+	Return $lClosestIdx;
 EndFunc
-Func DistanceFromCoord($aX,$aY)
-	Local $lMe = GetAgentByID(-2)
-	return ComputeDistance($array_Sifhalla[$lStartIdx][1], $array_Sifhalla[$lStartIdx][2], DllStructGetData($lMe,'X')kjkhk, $aY2)
-	
+Func CheckForErrors($aLogErrorFunction=0) ; Returns error string if something is wrong.
+	Local $lErrMsg=''
+	; If Not GetCharname() Then $lErrMsg = "No Guild Wars login detected"
+	If Call('GetHasGuildWarsCrashed') Then $lErrMsg = "Guild Wars has Crashed"
+	If GetMapLoading() == 2 And WaitMapLoading() = 0 Then $lErrMsg = "Timeout on map load"
+	If Not GetAgentExists(-2) Then $lErrMsg = "No Player Detected"
+	; If GetIsDead(-2) Then $lErrMsg = "Player is dead"
+	If $lErrMsg And $aLogErrorFunction Then Call($aLogErrorFunction,$lErrMsg)
+	Return $lErrMsg
 EndFunc
-Func RunThereSifhalla()
-	Out("Running to farm spot")
-	DIM $array_Sifhalla[31][3] = [ _
-								[1, -11059,	-23401], _
-								[1, -8524,	-21590], _
-								[1, -8870,	-21818], _
-								[1, -6979,	-21705], _
-								[1, -4144,	-25480], _
-								[1, -456,	-25575], _
-								[1, 2362,	-23315], _
-								[1, 1877,	-21862], _
-								[1, 914,	-21159], _
-								[1, 1303,	-18593], _
-								[1, 2092,	-16943], _
-								[1, 2909,	-15487], _
-								[1, 2757,	-13745], _
-								[1, 1280,	-11243], _
-								[1, -217,	-10112], _
-								[1, -1201,	-8855], _
-								[1, -2022,	-8535], _
-								[1, -2383,	-7170], _
-								[1, -332,	-5391], _
-								[1, 1726,	-5463], _
-								[1, 3465,	-5999], _
-								[1, 4130,	-8139], _
-								[1, 5170,	-9609], _
-								[1, 7922,	-11222], _
-								[1, 9600,	-11614], _
-								[1, 11818,	-13547], _
-								[1, 12911,	-15538], _
-								[1, 14199,	-18786], _
-								[1, 15201,	-20293], _
-								[2, 15865, -20531], _
-								[3, -20076,  5580]]
-	For $i = 0 To (UBound($array_Sifhalla) -1)
-		If ($array_Sifhalla[$i][0]==1)Then
-			If Not MoveRunning($array_Sifhalla[$i][1], $array_Sifhalla[$i][2]) Then ExitLoop
-		EndIf
-		If ($array_Sifhalla[$i][0]==2)Then
-			Move($array_Sifhalla[$i][1], $array_Sifhalla[$i][2], 30)
-			WaitMapLoading($MAP_ID_BJORA)
-		EndIf
-		If ($array_Sifhalla[$i][0]==3)Then
-			Move($array_Sifhalla[$i][1], $array_Sifhalla[$i][2], 30)
-			WaitMapLoading($MAP_ID_JAGA)
-		EndIf
-	Next
-EndFunc
-
 ; Description: This is pretty much all, take bounty, do left, do right, kill, rezone
 Func CombatLoop()
-	ManageInventory() ; Explorable area.
-	If Not $RenderingEnabled Then ClearMemory()
-
 	If GetNornTitle() < 160000 Then
 		Out("Taking Blessing")
 		GoNearestNPCToCoords(13318, -20826)
+		RndSleep(500 + GetPing())
 		Dialog(132)
 	EndIf
 	SendChat("")
@@ -480,8 +406,9 @@ Func CombatLoop()
 	Sleep(GetPing()+2000)
 
 	Out("Moving to aggro left")
-	MoveTo(13501, -20925)
-	MoveTo(13172, -22137)
+
+	MoveAggroing(13501, -20925)
+	;MoveAggroing(13172, -22137)
 	TargetNearestEnemy()
 	MoveAggroing(12496, -22600, 150)
 	MoveAggroing(11375, -22761, 150)
@@ -499,15 +426,16 @@ Func CombatLoop()
 	MoveAggroing(8982, -20576, 150)
 
 	Out("Waiting for left ball")
-	WaitFor(12*1000)
+	If CheckForErrors('PauseBot') Then Return False
+	WaitFor(4000) ; WaitFor(4*1000)
 
 	If GetDistance()<1000 Then
 		UseSkillEx($hos, -1)
 	Else
 		UseSkillEx($hos, -2)
 	EndIf
-
-	WaitFor(6000)
+	If CheckForErrors('PauseBot') Then Return False
+	WaitFor(3000) ; WaitFor(6000)
 
 	TargetNearestEnemy()
 
@@ -525,18 +453,19 @@ Func CombatLoop()
 	TargetNearestEnemy()
 	MoveAggroing(12476, -16157)
 
-	;Out("Waiting for right ball")
-	WaitFor(15*1000)
+	Out("Waiting for right ball")
+	If CheckForErrors('PauseBot') Then Return False
+	WaitFor(10000) ; WaitFor(10*1000)
 
 	If GetDistance()<1000 Then
 		UseSkillEx($hos, -1)
 	Else
 		UseSkillEx($hos, -2)
 	EndIf
+	If CheckForErrors('PauseBot') Then Return False
+	WaitFor(5000) ; WaitFor(5000)
 
-	WaitFor(5000)
-
-	;Out("Blocking enemies in spot")
+	Out("Blocking enemies in spot")
 	MoveAggroing(12920, -17032, 30)
 	MoveAggroing(12847, -17136, 30)
 	MoveAggroing(12720, -17222, 30)
@@ -547,12 +476,14 @@ Func CombatLoop()
 	WaitFor(300)
 	MoveAggroing(12445, -17327, 10)
 
-	;Out("Killing")
+	WaitFor(300)
+	
+	Out("Killing")
 	Kill()
-
+	
 	WaitFor(1200)
 
-	;Out("Looting")
+	Out("Looting")
 	PickUpLoot()
 
 	If GetIsDead(-2) Then
@@ -562,53 +493,21 @@ Func CombatLoop()
 		$RunCount += 1
 		GUICtrlSetData($RunsLabel, $RunCount)
 	EndIf
-
-	;Out("Zoning")
-	MoveAggroing(12289, -17700)
-	MoveAggroing(15318, -20351)
-
-	While GetIsDead(-2)
-		Out("Waiting for res")
-		Sleep(1000)
-	WEnd
-
-	Move(15865, -20531)
-	WaitMapLoading($MAP_ID_BJORA)
-
-	MoveTo(-19968, 5564)
-	Move(-20076,  5580, 30)
-
-	WaitMapLoading($MAP_ID_JAGA)
-
 	ClearMemory()
-	_PurgeHook()
 EndFunc
-
-Func _PurgeHook()
-	ToggleRendering()
-	Sleep(Random(2000,2500))
-	ToggleRendering()
-EndFunc   ;==>_PurgeHook
-
 #CS
 Description: use whatever skills you need to keep yourself alive.
 Take agent array as param to more effectively react to the environment (mobs)
 #CE
-Func StayAlive(Const ByRef $lAgentArray)
-	If IsRecharged($sf) Then
-		UseSkillEx($paradox)
-		UseSkillEx($sf)
-	EndIf
-
-	Local $lMe = GetAgentByID(-2)
-	Local $lEnergy = GetEnergy($lMe)
+Func StayAlive(Const ByRef $lAgentArray, $aMePtr = GetAgentPtr(-2), $aIsRunning=False)
+	Local $lMe = GetAgentByPtr($aMePtr)
 	Local $lAdjCount, $lAreaCount, $lSpellCastCount, $lProximityCount
 	Local $lDistance
 	For $i=1 To $lAgentArray[0]
 		If DllStructGetData($lAgentArray[$i], "Allegiance") <> 0x3 Then ContinueLoop
 		If DllStructGetData($lAgentArray[$i], "HP") <= 0 Then ContinueLoop
 		$lDistance = GetPseudoDistance($lMe, $lAgentArray[$i])
-		If $lDistance > 1200*1200 Then ContinueLoop
+		If $lDistance > 1300^2 Then ContinueLoop
 		$lProximityCount += 1
 		If $lDistance > $RANGE_SPELLCAST_2 Then ContinueLoop
 		$lSpellCastCount += 1
@@ -619,51 +518,27 @@ Func StayAlive(Const ByRef $lAgentArray)
 	Next
 
 	UseSF($lProximityCount)
-
-	If IsRecharged($shroud) Then
-		If $lSpellCastCount > 0 And DllStructGetData(GetEffect($SKILL_ID_SHROUD), "SkillID") == 0 Then
-			UseSkillEx($shroud)
-		ElseIf DllStructGetData($lMe, "HP") < 0.6 Then
-			UseSkillEx($shroud)
-		ElseIf $lAdjCount > 20 Then
-			UseSkillEx($shroud)
-		EndIf
-	EndIf
-
+	If ($lSpellCastCount > 0 Or GetAgentProperty($aMePtr, "HP") < 0.6) And GetEffectTimeRemaining($SKILL_ID_SHROUD) < 2000 Then UseSkillEx($shroud)
 	UseSF($lProximityCount)
-
-	If IsRecharged($wayofperf) Then
-		If DllStructGetData($lMe, "HP") < 0.5 Then
-			UseSkillEx($wayofperf)
-		ElseIf $lAdjCount > 20 Then
-			UseSkillEx($wayofperf)
-		EndIf
-	EndIf
-
+	If Not $aIsRunning And $lAreaCount > 5 And GetEffectTimeRemaining($SKILL_ID_CHANNELING) < 2000 Then UseSkillEx($channeling)
 	UseSF($lProximityCount)
-
-	If IsRecharged($channeling) Then
-		If $lAreaCount > 5 And GetEffectTimeRemaining($SKILL_ID_CHANNELING) < 2000 Then
-			UseSkillEx($channeling)
-		EndIf
-	EndIf
-
-	UseSF($lProximityCount)
+	If $lAreaCount Then UseSkillEx($iau)
 EndFunc
 
 ;~ Description: Uses sf if there's anything close and if its recharged
-Func UseSF($lProximityCount)
-	If IsRecharged($sf) And $lProximityCount > 0 Then
-		UseSkillEx($paradox)
-		UseSkillEx($sf)
-	EndIf
+Func UseSF($lProximityCount,$aMe = -2)
+	If $lProximityCount < 1 Then Return True
+	If GetEnergy($aMe) < 21 Or Not IsRecharged($sf) Then Return False
+	UseSkillEx($paradox)
+	UseSkillEx($sf)
 EndFunc
 
 ;~ Description: Move to destX, destY, while staying alive vs vaettirs
 Func MoveAggroing($lDestX, $lDestY, $lRandom = 150)
-	If GetIsDead(-2) Then Return
+	Local $lMe = GetAgentPtr(-2)
+	If GetIsDead($lMe) Then Return
 
-	Local $lMe, $lAgentArray
+	Local $lAgentArray
 	Local $lBlocked
 	Local $lHosCount
 	Local $lAngle
@@ -673,16 +548,16 @@ Func MoveAggroing($lDestX, $lDestY, $lRandom = 150)
 
 	Do
 		RndSleep(50)
-		$lMe = GetAgentByID(-2)
+		If GetAgentProperty($lMe,'ID') = 0 then Return False
 		If GetIsDead($lMe) Then Return False
 		$lAgentArray = GetAgentArray(0xDB)
 		StayAlive($lAgentArray)
-
-		If DllStructGetData($lMe, 'MoveX') == 0 And DllStructGetData($lMe, 'MoveY') == 0 Then
+		
+		If Not GetIsMoving($lMe) Then
 			If $lHosCount > 6 Then
 				Do	; suicide
 					Sleep(100)
-				Until GetIsDead(-2)
+				Until GetIsDead($lMe)
 				Return False
 			EndIf
 
@@ -691,7 +566,7 @@ Func MoveAggroing($lDestX, $lDestY, $lRandom = 150)
 				Move($lDestX, $lDestY, $lRandom)
 			ElseIf $lBlocked < 10 Then
 				$lAngle += 40
-				Move(DllStructGetData($lMe, 'X')+300*sin($lAngle), DllStructGetData($lMe, 'Y')+300*cos($lAngle))
+				Move(GetAgentProperty($lMe, 'X')+300*sin($lAngle), GetAgentProperty($lMe, 'Y')+300*cos($lAngle))
 			ElseIf IsRecharged($hos) Then
 				If $lHosCount==0 And GetDistance() < 1000 Then
 					UseSkillEx($hos, -1)
@@ -723,68 +598,65 @@ Func MoveAggroing($lDestX, $lDestY, $lRandom = 150)
 			EndIf
 		EndIf
 
-	Until ComputeDistance(DllStructGetData($lMe, 'X'), DllStructGetData($lMe, 'Y'), $lDestX, $lDestY) < $lRandom*1.5
+	Until ComputeDistance(GetAgentProperty($lMe, 'X'), GetAgentProperty($lMe, 'Y'), $lDestX, $lDestY) < $lRandom*1.5
 	Return True
 EndFunc
 
+Func GetHP($aAgent)
+	Return GetAgentProperty($aAgent,'HP')
+EndFunc
 ;~ Description: Move to destX, destY. This is to be used in the run from across Bjora
-Func MoveRunning($lDestX, $lDestY)
-	If GetIsDead(-2) Then Return False
-
-	Local $lMe, $lTgt
-	Local $lBlocked
-
-	Move($lDestX, $lDestY)
-
-	Do
-		RndSleep(500)
-
-		TargetNearestEnemy()
-		$lMe = GetAgentByID(-2)
-		$lTgt = GetAgentByID(-1)
-
-		If GetIsDead($lMe) Then Return False
-
-		If GetDistance($lMe, $lTgt) < 1300 And GetEnergy($lMe)>20 And IsRecharged($paradox) And IsRecharged($sf) Then
-			UseSkillEx($paradox)
-			UseSkillEx($sf)
+Func MoveRunning($aX, $aY)
+	Local $lBlocked = 0, $lMe, $lMePtr = GetAgentPtr(-2), $lOkDistance = 150
+	Local $lMapLoading = GetMapLoading()
+	Local $lDistance = GetDistanceTo($aX,$aY,$lMePtr)
+	Local $lDestX,$lDestY
+	Local $lAgentArray
+	While $lDistance > $lOkDistance
+		Sleep(100)
+		If $lMapLoading <> GetMapLoading() Then Return False ; Map changed
+		$lMe = GetAgentByPtr($lMePtr)
+		If GetAgentProperty($lMe, 'HP') <= 0 Then Return False ; Dead.
+		$lAgentArray = GetAgentArray(0xDB)
+		StayAlive($lAgentArray, $lMePtr, True)
+		$lDistance = GetDistanceTo($aX,$aY,$lMe)
+		If GetIsMoving($lMe) Then 
+			$lBlocked = 0
+			ContinueLoop ; Still moving.
 		EndIf
-
-		If DllStructGetData($lMe, "HP") < 0.9 And GetEnergy($lMe) > 10 And IsRecharged($shroud) Then UseSkillEx($shroud)
-
-		If DllStructGetData($lMe, "HP") < 0.5 And GetDistance($lMe, $lTgt) < 500 And GetEnergy($lMe) > 5 And IsRecharged($hos) Then UseSkillEx($hos, -1)
-
-		If DllStructGetData($lMe, 'MoveX') == 0 And DllStructGetData($lMe, 'MoveY') == 0 Then
-			$lBlocked += 1
-			Move($lDestX, $lDestY)
-		EndIf
-
-	Until ComputeDistance(DllStructGetData($lMe, 'X'), DllStructGetData($lMe, 'Y'), $lDestX, $lDestY) < 250
-	Return True
+		$lBlocked += 1
+		If $lBlocked > 20 Then Return False ; Blocked permanently?
+		Move($aX, $aY, 0)
+	WEnd
+	Return $lDistance < $lOkDistance
 EndFunc
 
 ;~ Description: Waits until all foes are in range (useless comment ftw)
-Func WaitUntilAllFoesAreInRange($lRange)
+Func WaitUntilAllFoesAreInRange($aRange = $RANGE_SPELLCAST_2, $lTimeout = 15000)
 	Local $lAgentArray
 	Local $lAdjCount, $lSpellCastCount
-	Local $lMe
-	Local $lDistance
-	Local $lShouldExit = False
-	While Not $lShouldExit
-		Sleep(100)
-		$lMe = GetAgentByID(-2)
+	Local $lMe = GetAgentPtr(-2), $lMyID = GetAgentID($lMe)
+	Local $lDistance,$lTimer = TimerInit()
+	Do
+		Sleep(500)
 		If GetIsDead($lMe) Then Return
+		$lAgentArray = 0
 		$lAgentArray = GetAgentArray(0xDB)
 		StayAlive($lAgentArray)
-		$lShouldExit = False
+		Sleep(500)
 		For $i=1 To $lAgentArray[0]
+			If GetAgentProperty($lAgentArray[$i],'Allegiance') <> 0x3 Then ContinueLoop ; Not enemy
+			If GetTarget($lAgentArray[$i]) <> $lMyID Then ContinueLoop ; Not targeting me
 			$lDistance = GetPseudoDistance($lMe, $lAgentArray[$i])
-			If $lDistance < $RANGE_SPELLCAST_2 And $lDistance > $lRange^2 Then
-				$lShouldExit = True
-				ExitLoop
-			EndIf
+			If $lDistance > $aRange Then ExitLoop ; too far away.
 		Next
-	WEnd
+		StayAlive($lAgentArray)
+	Until TimerDiff($lTimer) > $lTimeout
+	If TimerDiff($lTimer) < $lTimeout Then 
+		Out("WaitUntilAllFoesAreInRange - Success")
+	Else
+		Out("WaitUntilAllFoesAreInRange - Reached timeout")
+	EndIf
 EndFunc
 
 ;~ Description: Wait and stay alive at the same time (like Sleep(..), but without the letting yourself die part)
@@ -802,7 +674,8 @@ EndFunc
 
 ;~ Description: BOOOOOOOOOOOOOOOOOM
 Func Kill()
-	If GetIsDead(-2) Then Return
+	Local $lMe = GetAgentPtr(-2)
+	If GetIsDead($lMe) Then Return
 
 	Local $lAgentArray
 	Local $lDeadlock = TimerInit()
@@ -811,9 +684,9 @@ Func Kill()
 	Sleep(100)
 	Local $lTargetID = GetCurrentTargetID()
 
-	While GetAgentExists($lTargetID) And DllStructGetData(GetAgentByID($lTargetID), "HP") > 0
+	While GetAgentExists($lTargetID) And GetAgentProperty($lTargetID, "HP") > 0
 		Sleep(50)
-		If GetIsDead(-2) Then Return
+		If GetIsDead($lMe) Then Return
 		$lAgentArray = GetAgentArray(0xDB)
 		StayAlive($lAgentArray)
 
@@ -842,10 +715,10 @@ Func Kill()
 		EndIf
 
 		; Check if target has ran away
-		If GetDistance(-2, $lTargetID) > $RANGE_EARSHOT Then
+		If GetDistance() > $RANGE_EARSHOT Then
 			TargetNearestEnemy()
 			Sleep(GetPing()+100)
-			If GetAgentExists(-1) And DllStructGetData(GetAgentByID(-1), "HP") > 0 And GetDistance(-2, -1) < $RANGE_AREA Then
+			If GetAgentExists(-1) And GetAgentProperty(-1, "HP") > 0 And GetDistance() < $RANGE_AREA Then
 				$lTargetID = GetCurrentTargetID()
 			Else
 				ExitLoop
@@ -874,18 +747,20 @@ EndFunc
 ; It will not use if I am dead, if the skill is not recharged, or if I don't have enough energy for it
 ; It will sleep until the skill is cast, then it will wait for aftercast.
 Func UseSkillEx($lSkill, $lTgt=-2, $aTimeout = 3000)
-	If GetIsDead(-2) Then Return
+	Local $lMe = GetAgentPtr(-2)
+	If GetIsDead($lMe) Then Return
 	If Not IsRecharged($lSkill) Then Return
-	If GetEnergy(-2) < $skillCost[$lSkill] Then Return
-
+	If GetEnergy($lMe) < GetEnergyCost($lSkill) Then Return
 	Local $lDeadlock = TimerInit()
+	Local $lSkillStruct = GetSkillByID(GetSkillbarSkillID($lSkill))
 	UseSkill($lSkill, $lTgt)
+	RndSleep(DllStructGetData($lSkillStruct,'Activation') + GetPing())
 	Do
-		Sleep(50)
-		If GetIsDead(-2) = 1 Then Return
-	Until (Not IsRecharged($lSkill)) Or (TimerDiff($lDeadlock) > $aTimeout)
-
-	If $lSkill > 1 Then RndSleep(750)
+		If GetIsDead($lMe) Then Return
+		If Not IsRecharged($lSkill) Then ExitLoop ; Cast.
+		Sleep(20)
+	Until TimerDiff($lDeadlock) > $aTimeout
+	Sleep(DllStructGetData($lSkillStruct,'Aftercast'))
 EndFunc
 
 ; Checks if skill given (by number in bar) is recharged. Returns True if recharged, otherwise False.
@@ -898,76 +773,42 @@ Func GoNearestNPCToCoords($x, $y)
 	Do
 		RndSleep(250 + $ping)
 		$guy = GetNearestNPCToCoords($x, $y)
-		Out($guy)
-		Out(DllStructGetData($guy, 'Id'))
 	Until DllStructGetData($guy, 'Id') <> 0
 	Return GoToNPC($guy) ; Use GWA2 to to to NPC
-	$lDistance = GetDistance($x, $y)
-	Local $s = _NowCalc()
-	GoNPC($guy)
-	IM_Log(($lDistance / _DateDiff('s', $im_StartingTime, _NowCalc()))&' units per sec')
-	exit
-	ChangeTarget($guy)
-	RndSleep(250 + $ping)
-	GoNPC($guy)
-	RndSleep(250 + $ping)
-	Do
-		RndSleep(500)
-		Move(DllStructGetData($guy, 'X'), DllStructGetData($guy, 'Y'), 40)
-		RndSleep(500)
-		GoNPC($guy)
-		RndSleep(250)
-		; Out($lDistance)
-		Local $lMeX = DllStructGetData($Me, 'X'), $lMeY = DllStructGetData($Me, 'Y')
-		Local $lGuyX = DllStructGetData($guy, 'X'), $lGuyY = DllStructGetData($guy, 'Y')
-		Out($lMeX&', '&$lMeY&' to '&$lGuyX&', '&$lGuyY)
-		$lDistance = ComputeDistance($lMeX, $lMeY, $lGuyX, $lGuyY)
-	Until $lDistance < 250
-	RndSleep(1000)
 EndFunc   ;==>GoNearestNPCToCoords
 
 ;~ Description: standard pickup function, only modified to increment a custom counter when taking stuff with a particular ModelID
 Func PickUpLoot()
-	Local $lAgent
-	Local $lItem
-	Local $lDeadlock
-	For $i = 1 To GetMaxAgents()
-		If GetIsDead(-2) Then Return
-		$lAgent = GetAgentByID($i)
-		If DllStructGetData($lAgent, 'Type') <> 0x400 Then ContinueLoop
-		$lItem = GetItemByAgentID($i)
-		If CanPickup($lItem) Then
-			PickUpItem($lItem)
-			$lDeadlock = TimerInit()
-			While GetAgentExists($i)
-				Sleep(100)
-				If GetIsDead(-2) Then Return
-				If TimerDiff($lDeadlock) > 10000 Then ExitLoop
-			WEnd
-		EndIf
+	Local $lAgentID, $lAgentPtr, $lItem, $lDeadlock, $lAgentPos, $lMe =	GetAgentPtr(-2), $lItemID,$lItemPtr, $lPing = GetPing(), $lTimeout
+	Local $lAgentArray = GetAgentArray(0x400)
+	Local $lOriginalPos = GetAgentXY($lMe)
+	Out($lAgentArray[0]&" items to pickup")
+	For $i = 1 To $lAgentArray[0]
+		If GetIsDead($lMe) Then Return False ; died, cant pick up items dead
+		$lAgentPos = GetAgentXY($lAgentArray[$i])
+		If ComputeDistance($lOriginalPos[0],$lOriginalPos[1],$lAgentPos[0],$lAgentPos[1]) > 2000 Then ContinueLoop
+		If Not CanPickup($lAgentArray[$i]) Then ContinueLoop
+		MoveTo($lAgentPos[0],$lAgentPos[1])
+		$lAgentID = GetAgentProperty($lAgentArray[$i],'ID')
+		$lAgentPtr = GetAgentPtr($lAgentID)
+		PickUpItem($lAgentArray[$i])
+		Local $lDeadlock = TimerInit(),$lTimeout = 3000 + $lPing
+		Do
+			Sleep($lPing)
+			If GetAgentPtr($lAgentID) <> $lAgentPtr Then ExitLoop
+		Until TimerDiff($lDeadlock) > $lTimeout
 	Next
+	$lAgentArray = 0
 EndFunc   ;==>PickUpLoot
 
 ; Checks if should pick up the given item. Returns True or False
 Func CanPickUp($aItem)
-	Local $lModelID = DllStructGetData(($aItem), 'ModelID')
+	Local $lModelID = GetItemProperty(GetItemByAgentID(GetAgentProperty($aItem,'ID')), 'ModelID')
+	Out("ModelID = "&$lModelID)
 	If CheckArrayMapPieces($lModelID) Then Return $PickUpMapPieces ; Map Pieces
 	If $lModelID = 2511 Then Return GetGoldCharacter() < 99000 ; Gold Coins
 	If $lModelID = 21797 Then Return $PickUpTomes ; Mesmer Tome
-	If $lModelID = 22751 Then Return True ; Lockpicks
-	If $PickUpAll Then Return True ; Pick-up All override
-	If $lModelID = 27047 Then Return $mPickUpGlacialStones ; Glacial Stones
-	If $lModelID = 146 Then	
-		Local $aExtraID = DllStructGetData($aItem, "ExtraID")
-		Return $aExtraID = 10 Or $aExtraID = 12 ; Black or White dye
-	EndIf
-	Local $lRarity = GetRarity($aItem)
-	If $lRarity = 2624 Then Return True ; Gold Items
-	If $lRarity = 2525 Then Return $mPickUpPurples ; Purple Items
-	If $lRarity = 2623 Then Return $mPickUpBlues ; Blue Items
-	If CheckArrayPscon($lModelID) Then Return True ; Personal Cons
-	If CheckArrayMapPieces($lModelID) Then Return $PickUpMapPieces ; Map Pieces
-	Return False
+	Return True
 EndFunc   ;==>CanPickUp
 
 Func CheckArea($AX, $AY)
@@ -1084,1075 +925,23 @@ either by the Message display or a section of your GUI.
 
 Does Not track how many you put in the storage chest!!!
 #CE
-Func DisplayCounts()
-;	Standard Vaettir Drops excluding Map Pieces
-	Local $CurrentGold = GetGoldCharacter()
-	Local $GlacialStones = GetGlacialStoneCount()
-	Local $MesmerTomes = GetMesmerTomeCount()
-	Local $Lockpicks = GetLockpickCount()
-	Local $BlackDye = GetBlackDyeCount()
-	Local $WhiteDye = GetWhiteDyeCount()
-;	Event Items
-	Local $AgedDwarvenAle = GetAgedDwarvenAleCount()
-	Local $AgedHuntersAle = GetAgedHuntersAleCount()
-	Local $BattleIslandIcedTea = GetIcedTeaCount()
-	Local $BirthdayCupcake = GetBirthdayCupcakeCount()
-	Local $CandyCaneShards = GetCandyCaneShards()
-	Local $GoldenEgg = GetGoldenEggCount()
-	Local $Grog = GetBottleOfGrogCount()
-	Local $HoneyCombs = GetHoneyCombCount()
-	Local $KrytanBrandy = GetKrytanBrandyCount()
-	Local $PartyBeacon = GetPartyBeaconCount()
-	Local $PumpkinPies = GetPumpkinPieCount()
-	Local $SpikedEggnog = GetSpikedEggnogCount()
-	Local $TrickOrTreats = GetTrickOrTreatCount()
-	Local $VictoryToken = GetVictoryTokenCount()
-	Local $WayfarerMark = GetWayfarerMarkCount()
-;	RareMaterials
-	Local $EctoCount = GetEctoCount()
-	Local $ObShardCount = GetObsidianShardCount()
-	Local $FurCount = GetFurCount()
-	Local $LinenCount = GetLinenCount()
-	Local $DamaskCount = GetDamaskCount()
-	Local $SilkCount = GetSilkCount()
-	Local $SteelCount = GetSteelCount()
-	Local $DSteelCount = GetDeldSteelCount()
-	Local $MonClawCount = GetMonClawCount()
-	Local $MonEyeCount = GetMonEyeCount()
-	Local $MonFangCount = GetMonFangCount()
-	Local $RubyCount = GetRubyCount()
-	Local $SapphireCount = GetSapphireCount()
-	Local $DiamondCount = GetDiamondCount()
-	Local $OnyxCount = GetOnyxCount()
-	Local $CharcoalCount = GetCharcoalCount()
-	Local $GlassVialCount = GetGlassVialCount()
-	Local $LeatherCount = GetLeatherCount()
-	Local $ElonLeatherCount = GetElonLeatherCount()
-	Local $VialInkCount = GetVialInkCount()
-	Local $ParchmentCount = GetParchmentCount()
-	Local $VellumCount = GetVellumCount()
-	Local $SpiritwoodCount = GetSpiritwoodCount()
-	Local $AmberCount = GetAmberCount()
-	Local $JadeCount = GetJadeCount()
-;	Standard Vaettir Drops excluding Map Pieces
-	If GetGoldCharacter() > 0 Then
-		Out("Current Gold:" & $CurrentGold)
-	ElseIf GetGlacialStoneCount() > 0 Then
-		Out("Glacial Conut:" & $GlacialStones)
-	ElseIf GetMesmerTomeCount() > 0 Then
-		Out("Mesmer Tomes:" & $MesmerTomes)
-	ElseIf GetLockpickCount() > 0 Then
-		Out ("Lockpicks:" & $Lockpicks)
-	ElseIf GetBlackDyeCount() > 0 Then
-		Out ("Black Dyes:" & $BlackDye)
-	ElseIf GetWhiteDyeCount() > 0 Then
-		Out ("White Dyes:" & $WhiteDye)
-	EndIf
-;	Rare Materials
-	If GetFurCount() > 0 Then
-		Out ("Fur Squares:" & $FurCount)
-	ElseIf GetLinenCount() > 0 Then
-		Out ("Linen:" & $LinenCount)
-	ElseIf GetDamaskCount() > 0 Then
-		Out ("Damask:" & $DamaskCount)
-	ElseIf GetSilkCount() > 0 Then
-		Out ("Silk:" & $SilkCount)
-	ElseIf GetEctoCount() > 0 Then
-		Out("Ecto Count:" & $EctoCount)
-	ElseIf GetSteelCount() > 0 Then
-		Out ("Steel:" & $SteelCount)
-	ElseIf GetDeldSteelCount() > 0 Then
-		Out ("Deldrimor Steel:" & $DSteelCount)
-	ElseIf GetMonClawCount() > 0 Then
-		Out ("Monstrous Claw:" & $MonClawCount)
-	ElseIf GetMonEyeCount() > 0 Then
-		Out ("Monstrous Eye:" & $MonEyeCount)
-	ElseIf GetMonFangCount() > 0 Then
-		Out ("Monstrous Fang:" & $MonFangCount)
-	ElseIf GetRubyCount() > 0 Then
-		Out ("Ruby:" & $RubyCount)
-	ElseIf GetSapphireCount() > 0 Then
-		Out ("Sapphire:" & $SapphireCount)
-	ElseIf GetDiamondCount() > 0 Then
-		Out ("Diamond:" & $DiamondCount)
-	ElseIf GetOnyxCount() > 0 Then
-		Out ("Onyx:" & $OnyxCount)
-	ElseIf GetCharcoalCount() > 0 Then
-		Out ("Charcoal:" & $CharcoalCount)
-	ElseIf GetObsidianShardCount() > 0 Then
-		Out("Obby Count:" & $ObShardCount)
-	ElseIf GetGlassVialCount() > 0 Then
-		Out ("Glass Vial:" & $GlassVialCount)
-	ElseIf GetLeatherCount() > 0 Then
-		Out ("Leather Square:" & $LeatherCount)
-	ElseIf GetElonLeatherCount() > 0 Then
-		Out ("Elonian Leather:" & $ElonLeatherCount)
-	ElseIf GetVialInkCount() > 0 Then
-		Out ("Vials of Ink:" & $VialInkCount)
-	ElseIf GetParchmentCount() > 0 Then
-		Out ("Parchment:" & $ParchmentCount)
-	ElseIf GetVellumCount() > 0 Then
-		Out ("Vellum:" & $VellumCount)
-	ElseIf GetSpiritwoodCount() > 0 Then
-		Out ("Spiritwood Planks:" & $SpiritwoodCount)
-	ElseIf GetAmberCount() > 0 Then
-		Out ("Amber:" & $AmberCount)
-	ElseIf GetSpiritwoodCount() > 0 Then
-		Out ("Jade:" & $JadeCount)
-	EndIf
-;	Event Items
-	If GetAgedDwarvenAleCount() > 0 Then
-		Out("Aged Dwarven Ale:" & $AgedDwarvenAle)
-	ElseIf GetAgedHuntersAleCount() > 0 Then
-		Out("Aged Hunter's Ale:" & $AgedHuntersAle)
-	ElseIf GetIcedTeaCount() > 0 Then
-		Out("Iced Tea:" & $BattleIslandIcedTea)
-	ElseIf GetBirthdayCupcakeCount() > 0 Then
-		Out("Cupcakes:" & $BirthdayCupcake)
-	ElseIf GetCandyCaneShards() > 0 Then
-		Out("CC Shards:" & $CandyCaneShards)
-	ElseIf GetGoldenEggCount() > 0 Then
-		Out("Golden Eggs:" & $GoldenEgg)
-	ElseIf GetBottleOfGrogCount() > 0 Then
-		Out("Grog Arrr:" & $Grog)
-	ElseIf GetHoneyCombCount() > 0 Then
-		Out("Honeycombs:" & $HoneyCombs)
-	ElseIf GetKrytanBrandyCount() > 0 Then
-		Out("Krytan Brandy:" & $KrytanBrandy)
-	ElseIf GetPartyBeaconCount() > 0 Then
-		Out("Jesus Beams:" & $PartyBeacon)
-	ElseIf GetPumpkinPieCount() > 0 Then
-		Out("Pumpkin Pies:" & $PumpkinPies)
-	ElseIf GetSpikedEggnogCount() > 0 Then
-		Out("Spiked Eggnog:" & $SpikedEggnog)
-	ElseIf GetTrickOrTreatCount() > 0 Then
-		Out("ToTs:" & $TrickOrTreats)
-	ElseIf GetVictoryTokenCount() > 0 Then
-		Out("Victory Tokens:" & $VictoryToken)
-	ElseIf GetWayfarerMarkCount() > 0 Then
-		Out("Wayfarer Marks:" & $WayfarerMark)
-	ElseIf GetYuletideTonicCount() > 0 Then
-		Out("Yuletide Tonics:" & $YuletideTonic)
-	EndIf
-EndFunc
-
-;	Standard Vaettir Drops excluding Map Pieces
-Func GetGlacialStoneCount()
-	Local $AAMOUNTGlacialStone
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 27047 Then
-				$AAMOUNTGlacialStone += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTGlacialStone
-EndFunc   ; Counts Glacial Stones in your Inventory
-
-Func GetMesmerTomeCount()
-	Local $AAMOUNTMesmerTomes
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 21797 Then
-				$AAMOUNTMesmerTomes += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTMesmerTomes
-EndFunc   ; Counts Mesmer Tomes in your Inventory
-
-Func GetLockpickCount()
-	Local $AAMOUNTLockPick
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 22751 Then
-				$AAMOUNTLockPick += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTLockPick
-EndFunc   ; Counts Lockpicks in your Inventory
-
-Func GetBlackDyeCount()
-	Local $AAMOUNTBlackDyes
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 146 Then
-				If DllStructGetData($aitem, "ExtraID") == 10 Then
-					$AAMOUNTBlackDyes += DllStructGetData($aItem, "Quantity")
-				EndIf
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTBlackDyes
-EndFunc   ; Counts Black Dyes in your Inventory
-
-Func GetWhiteDyeCount()
-	Local $AAMOUNTWhiteDyes
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 146 Then
-				If DllStructGetData($aitem, "ExtraID") == 12 Then
-					$AAMOUNTWhiteDyes += DllStructGetData($aItem, "Quantity")
-				EndIf
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTWhiteDyes
-EndFunc   ; Counts White Dyes in your Inventory
-
-;	Rare Materials
-Func GetFurCount()
-	Local $AAMOUNTFurSquares
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 941 Then
-				$AAMOUNTFurSquares += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTFurSquares
-EndFunc   ; Counts Fur Squares in your Inventory
-
-Func GetLinenCount()
-	Local $AAMOUNTLinen
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 926 Then
-				$AAMOUNTLinen += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTLinen
-EndFunc   ; Counts Linen in your Inventory
-
-Func GetDamaskCount()
-	Local $AAMOUNTDamask
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 927 Then
-				$AAMOUNTDamask += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTDamask
-EndFunc   ; Counts Damask in your Inventory
-
-Func GetSilkCount()
-	Local $AAMOUNTSilk
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 928 Then
-				$AAMOUNTSilk += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTSilk
-EndFunc   ; Counts Silk in your Inventory
-
-Func GetEctoCount()
-	Local $AAMOUNTEctos
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 930 Then
-				$AAMOUNTEctos += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTEctos
-EndFunc   ; Counts Ectos in your Inventory
-
-Func GetSteelCount()
-	Local $AAMOUNTSteel
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 949 Then
-				$AAMOUNTSteel += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTSteel
-EndFunc   ; Counts Steel in your Inventory
-
-Func GetDeldSteelCount()
-	Local $AAMOUNTDelSteel
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 950 Then
-				$AAMOUNTDelSteel += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTDelSteel
-EndFunc   ; Counts Deldrimor Steel in your Inventory
-
-Func GetMonClawCount()
-	Local $AAMOUNTMonClaw
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 923 Then
-				$AAMOUNTMonClaw += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTMonClaw
-EndFunc   ; Counts Monstrous Claws in your Inventory
-
-Func GetMonEyeCount()
-	Local $AAMOUNTMonEyes
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 931 Then
-				$AAMOUNTMonEyes += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTMonEyes
-EndFunc   ; Counts Montrous Eyes in your Inventory
-
-Func GetMonFangCount()
-	Local $AAMOUNTMonFangs
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 932 Then
-				$AAMOUNTMonFangs += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTMonFangs
-EndFunc   ; Counts Montrous Fangs in your Inventory
-
-Func GetRubyCount()
-	Local $AAMOUNTRubies
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 937 Then
-				$AAMOUNTRubies += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTRubies
-EndFunc   ; Counts Rubies in your Inventory
-
-Func GetSapphireCount()
-	Local $AAMOUNTSapphires
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 938 Then
-				$AAMOUNTSapphires += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTSapphires
-EndFunc   ; Counts Sapphires in your Inventory
-
-Func GetDiamondCount()
-	Local $AAMOUNTDiamonds
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 935 Then
-				$AAMOUNTDiamonds += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTDiamonds
-EndFunc   ; Counts Diamonds in your Inventory
-
-Func GetOnyxCount()
-	Local $AAMOUNTOnyx
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 936 Then
-				$AAMOUNTOnyx += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTOnyx
-EndFunc   ; Counts Onyx in your Inventory
-
-Func GetCharcoalCount()
-	Local $AAMOUNTCharcoal
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 922 Then
-				$AAMOUNTCharcoal += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTCharcoal
-EndFunc   ; Counts Charcoal in your Inventory
-
-Func GetObsidianShardCount()
-	Local $AAMOUNTObbyShards
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 945 Then
-				$AAMOUNTObbyShards += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTObbyShards
-EndFunc   ; Counts Obsidian Shards in your Inventory
-
-Func GetGlassVialCount()
-	Local $AAMOUNTGlassVials
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 939 Then
-				$AAMOUNTGlassVials += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTGlassVials
-EndFunc   ; Counts Glass Vials in your Inventory
-
-Func GetLeatherCount()
-	Local $AAMOUNTLeather
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 942 Then
-				$AAMOUNTLeather += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTLeather
-EndFunc   ; Counts Leather Squares in your Inventory
-
-Func GetElonLeatherCount()
-	Local $AAMOUNTElonLeather
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 943 Then
-				$AAMOUNTElonLeather += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTElonLeather
-EndFunc   ; Counts Elonian LEather in your Inventory
-
-Func GetVialInkCount()
-	Local $AAMOUNTVialsInk
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 944 Then
-				$AAMOUNTVialsInk += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTVialsInk
-EndFunc   ; Counts Vials of Ink in your Inventory
-
-Func GetParchmentCount()
-	Local $AAMOUNTParchment
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 951 Then
-				$AAMOUNTParchment += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTParchment
-EndFunc   ; Counts Parchment in your Inventory
-
-Func GetVellumCount()
-	Local $AAMOUNTVellum
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 952 Then
-				$AAMOUNTVellum += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTVellum
-EndFunc   ; Counts Vellum in your Inventory
-
-Func GetSpiritwoodCount()
-	Local $AAMOUNTSpiritWood
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 956 Then
-				$AAMOUNTSpiritWood += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTSpiritWood
-EndFunc   ; Counts Spiritwood Planks in your Inventory
-
-Func GetAmberCount()
-	Local $AAMOUNTAmber
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 6532 Then
-				$AAMOUNTAmber += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTAmber
-EndFunc   ; Counts Chunks of Amber in your Inventory
-
-Func GetJadeCount()
-	Local $AAMOUNTJade
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 6533 Then
-				$AAMOUNTJade += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTJade
-EndFunc   ; Counts Jadeite Shards in your Inventory
-
-;	Event Items
-Func GetAgedDwarvenAleCount()
-	Local $AAMOUNTAgedDwarven
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 24593 Then
-				$AAMOUNTAgedDwarven += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTAgedDwarven
-EndFunc   ; Counts Aged Dwarven Ales in your Inventory
-
-Func GetAgedHuntersAleCount()
-	Local $AAMOUNTAgedHunters
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 31145 Then
-				$AAMOUNTAgedHunters += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTAgedHunters
-EndFunc   ; Counts Aged Dwarven Ales in your Inventory
-
-Func GetIcedTeaCount()
-	Local $AAMOUNTIcedTea
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 36682 Then
-				$AAMOUNTIcedTea += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTIcedTea
-EndFunc   ; Counts Battle Isle Iced teas in your Inventory
-
-Func GetBirthdayCupcakeCount()
-	Local $AAMOUNTCupcakes
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 22269 Then
-				$AAMOUNTCupcakes += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTCupcakes
-EndFunc   ; Counts Birthday Cupcakes in your Inventory
-
-Func GetCandyCaneShards()
-	Local $AAMOUNTCCShards
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 556 Then
-				$AAMOUNTCCShards += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTCCShards
-EndFunc   ; Counts Candy Cane Shards in your Inventory
-
-Func GetGoldenEggCount()
-	Local $AAMOUNTEggs
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 22752 Then
-				$AAMOUNTEggs += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTEggs
-EndFunc   ; Counts Golden Eggs in your Inventory
-
-Func GetBottleOfGrogCount()
-	Local $AAMOUNTGrogs
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 30855 Then
-				$AAMOUNTGrogs += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTGrogs
-EndFunc   ; Counts Bottles of Grog in your Inventory
-
-Func GetHoneyCombCount()
-	Local $AAMOUNTHoneycombs
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 26784 Then
-				$AAMOUNTHoneycombs += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTHoneycombs
-EndFunc   ; Counts Honeycombs in your Inventory
-
-Func GetKrytanBrandyCount()
-	Local $AAMOUNTBrandy
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 35124 Then
-				$AAMOUNTBrandy += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTBrandy
-EndFunc   ; Counts Krytan Brandies in your Inventory
-
-Func GetPartyBeaconCount()
-	Local $AAMOUNTJesusBeams
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 36683 Then
-				$AAMOUNTJesusBeams += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTJesusBeams
-EndFunc   ; Counts Party Beacons in your Inventory
-
-Func GetPumpkinPieCount()
-	Local $AAMOUNTPies
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 28436 Then
-				$AAMOUNTPies += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTPies
-EndFunc   ; Counts Slice of Pumpkin Pie in your Inventory
-
-Func GetSpikedEggnogCount()
-	Local $AAMOUNTSpikedEggnog
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 6366 Then
-				$AAMOUNTSpikedEggnog += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTSpikedEggnog
-EndFunc   ; Counts Spiked Eggnogs in your Inventory
-
-Func GetTrickOrTreatCount()
-	Local $AAMOUNTToTs
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 28434 Then
-				$AAMOUNTToTs += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTToTs
-EndFunc   ; Counts Trick-Or-Treat bags in your Inventory
-
-Func GetVictoryTokenCount()
-	Local $AAMOUNTVicTokens
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 18345 Then
-				$AAMOUNTVicTokens += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTVicTokens
-EndFunc   ; Counts Victory Tokens in your Inventory
-
-Func GetWayfarerMarkCount();
-	Local $AAMOUNTWayfarerMark
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 37765 Then
-				$AAMOUNTWayfarerMark += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTWayfarerMark
-EndFunc   ; Counts Wayfarer Marks in your Inventory
-
-Func GetYuletideTonicCount();
-	Local $AAMOUNTYuletideTonics
-	Local $aBag
-	Local $aItem
-	Local $i
-	For $i = 1 To 4
-		$aBag = GetBag($i)
-		For $j = 1 To DllStructGetData($aBag, "Slots")
-			$aItem = GetItemBySlot($aBag, $j)
-			If DllStructGetData($aItem, "ModelID") == 21490 Then
-				$AAMOUNTYuletideTonics += DllStructGetData($aItem, "Quantity")
-			Else
-				ContinueLoop
-			EndIf
-		Next
-	Next
-	Return $AAMOUNTYuletideTonics
-EndFunc   ; Counts Yuletides in your Inventory
 
 Func CountSlots()
-	Local $bag
-	Local $temp = 0
-	$bag = GetBag(1)
-	$temp += DllStructGetData($bag, 'Slots') - DllStructGetData($bag, 'ItemsCount')
-	$bag = GetBag(2)
-	$temp += DllStructGetData($bag, 'Slots') - DllStructGetData($bag, 'ItemsCount')
-	$bag = GetBag(3)
-	$temp += DllStructGetData($bag, 'Slots') - DllStructGetData($bag, 'ItemsCount')
-	$bag = GetBag(4)
-	$temp += DllStructGetData($bag, 'Slots') - DllStructGetData($bag, 'ItemsCount')
-	Return $temp
+	Local $lBag, $lCnt = 0
+	For $bag = 1 To 4
+		$lBag = GetBag($bag)
+		$lCnt+= GetBagProperty($lBag,'Slots') - GetBagProperty($lBag,'ItemsCount')
+	Next
+	Return $lCnt
 EndFunc ; Counts open slots in your Imventory
 
 Func CountSlotsChest()
-	Local $bag
-	Local $temp = 0
-	$bag = GetBag(8)
-	$temp += DllStructGetData($bag, 'Slots') - DllStructGetData($bag, 'ItemsCount')
-	$bag = GetBag(9)
-	$temp += DllStructGetData($bag, 'Slots') - DllStructGetData($bag, 'ItemsCount')
-	$bag = GetBag(10)
-	$temp += DllStructGetData($bag, 'Slots') - DllStructGetData($bag, 'ItemsCount')
-	$bag = GetBag(11)
-	$temp += DllStructGetData($bag, 'Slots') - DllStructGetData($bag, 'ItemsCount')
-	$bag = GetBag(12)
-	$temp += DllStructGetData($bag, 'Slots') - DllStructGetData($bag, 'ItemsCount')
-	$bag = GetBag(13)
-	$temp += DllStructGetData($bag, 'Slots') - DllStructGetData($bag, 'ItemsCount')
-	$bag = GetBag(14)
-	$temp += DllStructGetData($bag, 'Slots') - DllStructGetData($bag, 'ItemsCount')
-	$bag = GetBag(15)
-	$temp += DllStructGetData($bag, 'Slots') - DllStructGetData($bag, 'ItemsCount')
-	$bag = GetBag(16)
-	$temp += DllStructGetData($bag, 'Slots') - DllStructGetData($bag, 'ItemsCount')
-	Return $temp
+	Local $lBag, $lCnt = 0
+	For $bag = 8 To 16
+		$lBag = GetBag($bag)
+		$lCnt+= GetBagProperty($lBag,'Slots') - GetBagProperty($lBag,'ItemsCount')
+	Next
+	Return $lCnt
 EndFunc ; Counts open slots in the storage chest
 #EndRegion Counting Things
 
@@ -2162,6 +951,18 @@ EndFunc ; Counts open slots in the storage chest
 #EndRegion Inventory
 
 ;~ Description: Toggle rendering and also hide or show the gw window
+Func CheckRenderingBox()
+	If Not $mDisableRenderingCheckbox then Return
+	If Not GetAgentExists(-2) then Return
+	If GUICtrlGetState($mDisableRenderingCheckbox) <> 1 Then
+		EnableRendering()
+		WinSetState(GetWindowHandle(), "", @SW_SHOW)
+	Else
+		DisableRendering()
+		WinSetState(GetWindowHandle(), "", @SW_HIDE)
+		ClearMemory()
+	EndIf
+EndFunc
 Func ToggleRendering()
 	$RenderingEnabled = Not $RenderingEnabled
 	If $RenderingEnabled Then
